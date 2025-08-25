@@ -104,6 +104,3 @@ A full-stack Excel data analytics and visualization platform built with MongoDB,
 
 ***
 
-Feel free to ask for detailed development guides or code samples for specific features!
-
-***
