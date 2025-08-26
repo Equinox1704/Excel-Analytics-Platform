@@ -1,18 +1,36 @@
 import React, { useState } from "react";
+import { loginUser } from "../api";
+import SuccessDialog from "./SuccessDialog";
 import "./LoginPage.css";
 import logo from "../assets/logo1.png";
 
 // connection between the backend
 // forgot button check handling
 
-export default function InsightSheetLogin({ onSignupClick }) {
+export default function InsightSheetLogin({ onSignupClick, onForgotPasswordClick }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Sign in!");
+    setError("");
+    setLoading(true);
+    try {
+      const data = await loginUser(email, password);
+      // You can store token in localStorage or context here
+      localStorage.setItem("token", data.token);
+      // Optionally redirect or update parent state
+      // window.location.reload();
+      setShowSuccess(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,6 +43,7 @@ export default function InsightSheetLogin({ onSignupClick }) {
           <h2 className="is-title">Welcome back</h2>
           <p className="is-muted">Please enter your details</p>
           <form onSubmit={handleSubmit} className="is-form">
+            {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
             <input
               type="email"
               placeholder="Email address"
@@ -54,19 +73,19 @@ export default function InsightSheetLogin({ onSignupClick }) {
               <button
                 type="button"
                 className="is-link"
-                // onClick={onSignupClick} check this one too
+                onClick={onForgotPasswordClick}
                 style={{ background: "none", border: "none", padding: 0, color: "var(--orange)", textDecoration: "underline", cursor: "pointer" }}
             >
                 Forgot password?
             </button>
 
             </div>
-            <button className="is-btn-main" type="submit">
-              Sign In
+            <button className="is-btn-main" type="submit" disabled={loading}>
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
           <div className="is-signup-info">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <button
               type="button"
               className="is-link"
@@ -94,6 +113,11 @@ export default function InsightSheetLogin({ onSignupClick }) {
           </div>
         </div>
       </div>
+      <SuccessDialog 
+        isOpen={showSuccess} 
+        message="Welcome back! You have successfully logged in to your account."
+        onClose={() => setShowSuccess(false)}
+      />
     </div>
   );
 }

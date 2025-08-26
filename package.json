@@ -1,0 +1,28 @@
+{
+  "name": "excel-analytics-platform",
+  "version": "1.0.0",
+  "description": "Full-stack Excel Analytics Platform with unified server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "npm run build && npm start",
+    "build": "cd frontend && npm install && npm run build",
+    "install-all": "npm install && cd frontend && npm install",
+    "frontend-build": "cd frontend && npm run build"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.4"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

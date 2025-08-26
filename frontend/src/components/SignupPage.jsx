@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { registerUser } from "../api";
+import SuccessDialog from "./SuccessDialog";
 import "./LoginPage.css";
 import logo from "../assets/logo1.png";
 
@@ -7,14 +9,33 @@ export default function InsightSheetSignup({ onLoginClick }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [welcomeEmailSent, setWelcomeEmailSent] = useState(false);
 
-  const handleSignup = (e) => {
+  const handleSuccessClose = () => {
+    setShowSuccess(false);
+    onLoginClick(); // Redirect to login page after closing dialog
+  };
+
+  const handleSignup = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
-    alert(`Signup submitted for ${name}!`);
+    setError("");
+    setLoading(true);
+    try {
+      const result = await registerUser(name, email, password);
+      setWelcomeEmailSent(result.emailSent || false);
+      setShowSuccess(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -27,6 +48,7 @@ export default function InsightSheetSignup({ onLoginClick }) {
           <h2 className="is-title">Create an account</h2>
           <p className="is-muted">Start discovering insights in your data</p>
           <form onSubmit={handleSignup} className="is-form">
+            {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
             <input
               className="is-input"
               type="text"
@@ -59,8 +81,8 @@ export default function InsightSheetSignup({ onLoginClick }) {
               onChange={e => setConfirmPassword(e.target.value)}
               required
             />
-            <button className="is-btn-main" type="submit">
-              Sign Up
+            <button className="is-btn-main" type="submit" disabled={loading}>
+              {loading ? "Creating Account..." : "Sign Up"}
             </button>
           </form>
           <div className="is-signup-info">
@@ -92,6 +114,11 @@ export default function InsightSheetSignup({ onLoginClick }) {
           </div>
         </div>
       </div>
+      <SuccessDialog 
+        isOpen={showSuccess} 
+        message={`Account created successfully! ${welcomeEmailSent ? 'A welcome email has been sent to your inbox with getting started tips.' : ''} Please sign in with your new credentials.`}
+        onClose={handleSuccessClose}
+      />
     </div>
   );
 }

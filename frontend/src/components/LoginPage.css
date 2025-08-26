@@ -191,3 +191,87 @@ body {
     border-radius: 0 0 24px 24px;
   }
 }
+
+/* Success Dialog Styles */
+.success-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(20, 33, 61, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.success-dialog {
+  background: var(--white);
+  border-radius: 24px;
+  box-shadow: 0 16px 64px rgba(20, 33, 61, 0.25);
+  max-width: 400px;
+  width: 90%;
+  margin: 20px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.success-dialog-content {
+  padding: 2.5rem;
+  text-align: center;
+}
+
+.success-icon {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.success-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 1rem 0;
+  letter-spacing: 0.4px;
+}
+
+.success-message {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0 0 2rem 0;
+  line-height: 1.5;
+}
+
+.success-btn {
+  background: var(--orange);
+  color: var(--white);
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.success-btn:hover {
+  background: #e8930f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(252, 163, 17, 0.3);
+}
+
+.success-btn:active {
+  transform: translateY(0);
+}
