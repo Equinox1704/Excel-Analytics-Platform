@@ -1,38 +1,78 @@
-.App {
-  text-align: center;
+/* Palette */
+:root {
+  --black: #000000;
+  --navy: #14213D;
+  --yellow: #FCA311;
+  --gray: #E5E5E5;
+  --white: #FFFFFF;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+/* Layout */
+.login-selector {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  align-items: center;
+  background: var(--gray);
 }
 
-.App-link {
-  color: #61dafb;
+/* Form Styles */
+.login-form {
+  background: var(--navy);
+  padding: 2rem 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 5px 30px rgba(20,33,61,0.2);
+  margin-bottom: 2rem;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.login-form h2 {
+  color: var(--yellow);
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.login-input {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.2rem;
+  border: 1px solid var(--gray);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--black);
+  font-size: 1rem;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 6px;
+  color: var(--white);
+  background: var(--yellow);
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.login-btn:hover {
+  background: #d68e1f;
+}
+
+/* Switch button/link */
+.login-switch {
+  text-align: center;
+}
+
+.switch-btn {
+  background: none;
+  border: none;
+  color: var(--navy);
+  text-decoration: underline;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: 6px;
 }

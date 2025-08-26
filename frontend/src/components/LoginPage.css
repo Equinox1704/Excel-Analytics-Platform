@@ -1,0 +1,193 @@
+:root {
+  --black: #000000;
+  --navy: #14213D;
+  --orange: #FCA311;
+  --gray: #E5E5E5;
+  --white: #FFFFFF;
+}
+
+body {
+  background: var(--gray);
+}
+
+.is-root {
+  min-height: 100vh;
+  background: var(--gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.is-container {
+  display: flex;
+  width: 900px;
+  min-height: 500px;
+  background: var(--white);
+  border-radius: 24px;
+  box-shadow: 0 8px 40px rgba(20,33,61,0.12);
+  overflow: hidden;
+}
+
+/* Left Panel */
+.is-panel-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--white);
+  padding: 3rem 2.7rem 2rem 2.7rem;
+}
+
+.is-logo {
+  font-size: 2rem;
+  font-family: "Poppins", sans-serif;
+  font-weight: 800;
+  color: var(--navy);
+  margin-bottom: 2.2rem;
+  margin-top: 0.2rem;
+  letter-spacing: 1px;
+}
+
+.is-logo-img {
+  object-fit: cover;
+  width: 200px;
+  /* height: 100px; */
+  height: 54px;
+  /* margin-bottom: 2rem; */
+  display: block;
+}
+
+
+.is-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 0.2rem;
+}
+
+.is-muted {
+  color: #6c6c6c;
+  font-size: 1rem;
+  margin-bottom: 2.1rem;
+}
+
+.is-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.is-input {
+  font-size: 1.08rem;
+  border: none;
+  border-radius: 9px;
+  padding: 1.1rem 1.1rem;
+  background: var(--gray);
+  color: var(--navy);
+  margin-bottom: 1.22rem;
+  outline: none;
+  transition: box-shadow 0.15s;
+}
+.is-input:focus {
+  box-shadow: 0 0 0 2px var(--navy, #14213D);
+}
+
+.is-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+  font-size: 0.99rem;
+}
+
+.is-checkbox {
+  color: #444;
+  font-weight: 500;
+}
+
+.is-link {
+  color: var(--orange);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.97rem;
+}
+
+.is-btn-main {
+  width: 100%;
+  background: var(--orange);
+  color: var(--navy);
+  font-size: 1.15rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: background 0.17s;
+  cursor: pointer;
+  margin-top: 0.2rem;
+  margin-bottom: 0.8rem;
+  box-shadow: 0 2px 8px rgba(252,163,17,0.09);
+}
+.is-btn-main:hover {
+  background: #cf900b;
+}
+
+/* Info below main button */
+.is-signup-info {
+  margin-top: 1.4rem;
+  color: #282828;
+  font-size: 1.07rem;
+}
+
+.is-signup-info .is-link {
+  font-size: 1.08rem;
+  margin-left: 0.3rem;
+  font-weight: 700;
+}
+
+/* Right Panel - Visualization */
+.is-panel-right {
+  flex: 1.05;
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 400px;
+  min-width: 350px;
+  position: relative;
+}
+.is-illustration {
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -3rem;
+}
+
+.is-graphic-title {
+  margin-top: 1.7rem;
+  font-size: 1.32rem;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0.4px;
+  text-align: center;
+}
+.is-graphic-desc {
+  margin-top: 0.6rem;
+  font-size: 1.05rem;
+  color: #f4f4f4;
+  text-align: center;
+  max-width: 260px;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .is-container {
+    flex-direction: column;
+    width: 98vw;
+    min-width: 0;
+  }
+  .is-panel-right {
+    border-radius: 0 0 24px 24px;
+  }
+}
