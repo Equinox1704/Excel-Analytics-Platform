@@ -275,3 +275,16 @@ body {
 .success-btn:active {
   transform: translateY(0);
 }
+
+.success-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.auto-redirect-info {
+  font-size: 0.9rem;
+  color: #888;
+  font-style: italic;
+}

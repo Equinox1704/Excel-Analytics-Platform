@@ -1,7 +1,28 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./LoginPage.css";
 
-export default function SuccessDialog({ isOpen, message, onClose }) {
+export default function SuccessDialog({ isOpen, message, onClose, autoCloseDelay = 3000 }) {
+  const [countdown, setCountdown] = useState(Math.ceil(autoCloseDelay / 1000));
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setCountdown(Math.ceil(autoCloseDelay / 1000));
+
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          onClose();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, autoCloseDelay, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -17,9 +38,14 @@ export default function SuccessDialog({ isOpen, message, onClose }) {
           </div>
           <h3 className="success-title">Success!</h3>
           <p className="success-message">{message}</p>
-          <button className="success-btn" onClick={onClose}>
-            Continue
-          </button>
+          <div className="success-actions">
+            <button className="success-btn" onClick={onClose}>
+              Continue Now
+            </button>
+            <div className="auto-redirect-info">
+              Redirecting automatically in {countdown} second{countdown !== 1 ? 's' : ''}...
+            </div>
+          </div>
         </div>
       </div>
     </div>

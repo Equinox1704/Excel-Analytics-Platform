@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { registerUser } from "../api";
 import SuccessDialog from "./SuccessDialog";
 import "./LoginPage.css";
-import logo from "../assets/logo1.png";
+import logo from "../assets/logo.png";
 
 export default function InsightSheetSignup({ onLoginClick }) {
   const [name, setName] = useState("");
@@ -118,6 +118,7 @@ export default function InsightSheetSignup({ onLoginClick }) {
         isOpen={showSuccess} 
         message={`Account created successfully! ${welcomeEmailSent ? 'A welcome email has been sent to your inbox with getting started tips.' : ''} Please sign in with your new credentials.`}
         onClose={handleSuccessClose}
+        autoCloseDelay={4000}
       />
     </div>
   );

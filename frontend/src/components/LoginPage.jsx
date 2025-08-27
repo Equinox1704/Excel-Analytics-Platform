@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { loginUser } from "../api";
 import SuccessDialog from "./SuccessDialog";
 import "./LoginPage.css";
-import logo from "../assets/logo1.png";
+import logo from "../assets/logo.png";
 
 // connection between the backend
 // forgot button check handling
 
-export default function InsightSheetLogin({ onSignupClick, onForgotPasswordClick }) {
+export default function InsightSheetLogin({ onSignupClick, onForgotPasswordClick, onAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -15,16 +15,25 @@ export default function InsightSheetLogin({ onSignupClick, onForgotPasswordClick
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const handleSuccessClose = () => {
+    setShowSuccess(false);
+    // Redirect to dashboard after closing success dialog
+    if (onAuthenticated) {
+      // Extract user info from stored data or response
+      const userData = { name: email.split('@')[0] }; // Simple extraction, you might want to get this from API response
+      onAuthenticated(userData, localStorage.getItem('token'));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
       const data = await loginUser(email, password);
-      // You can store token in localStorage or context here
+      // Store token
       localStorage.setItem("token", data.token);
-      // Optionally redirect or update parent state
-      // window.location.reload();
+      // Show success dialog with auto-redirect
       setShowSuccess(true);
     } catch (err) {
       setError(err.message);
@@ -116,7 +125,8 @@ export default function InsightSheetLogin({ onSignupClick, onForgotPasswordClick
       <SuccessDialog 
         isOpen={showSuccess} 
         message="Welcome back! You have successfully logged in to your account."
-        onClose={() => setShowSuccess(false)}
+        onClose={handleSuccessClose}
+        autoCloseDelay={3000}
       />
     </div>
   );

@@ -3,26 +3,35 @@ import InsightSheetLogin from "./LoginPage";
 import InsightSheetSignup from "./SignupPage";
 import ForgotPasswordPage from "./ForgotPasswordPage";
 
-export default function AuthPage() {
-  const [mode, setMode] = useState("login"); // 'login', 'signup', 'forgot-password'
+export default function AuthPage({ initialMode = "login", onSwitchMode, onAuthenticated }) {
+  const [mode, setMode] = useState(initialMode); // 'login', 'signup', 'forgot-password'
+
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    if (onSwitchMode) {
+      onSwitchMode(newMode);
+    }
+  };
+  
   
   if (mode === "login") {
     return (
       <InsightSheetLogin 
-        onSignupClick={() => setMode("signup")}
-        onForgotPasswordClick={() => setMode("forgot-password")}
+        onSignupClick={() => handleModeChange("signup")}
+        onForgotPasswordClick={() => handleModeChange("forgot-password")}
+        onAuthenticated={onAuthenticated}
       />
     );
   } else if (mode === "signup") {
     return (
       <InsightSheetSignup 
-        onLoginClick={() => setMode("login")} 
+        onLoginClick={() => handleModeChange("login")} 
       />
     );
   } else if (mode === "forgot-password") {
     return (
       <ForgotPasswordPage 
-        onBackToLogin={() => setMode("login")}
+        onBackToLogin={() => handleModeChange("login")}
       />
     );
   }

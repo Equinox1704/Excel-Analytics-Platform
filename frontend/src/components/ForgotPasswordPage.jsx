@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { forgotPassword, verifyOTP, resetPassword } from "../api";
 import SuccessDialog from "./SuccessDialog";
 import "./LoginPage.css";
-import logo from "../assets/logo1.png";
+import logo from "../assets/logo.png";
 
 export default function ForgotPasswordPage({ onBackToLogin }) {
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
@@ -211,6 +211,7 @@ export default function ForgotPasswordPage({ onBackToLogin }) {
         isOpen={showSuccess} 
         message="Your password has been reset successfully! Please sign in with your new password."
         onClose={handleSuccessClose}
+        autoCloseDelay={3000}
       />
     </div>
   );
