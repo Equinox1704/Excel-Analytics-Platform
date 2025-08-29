@@ -42,6 +42,7 @@ A unified full-stack web application for Excel data analytics with user authenti
    # Email Service
    EMAIL_USER=your_email@gmail.com
    EMAIL_PASS=your_gmail_app_password
+   PASSWORD=Ajha@2468
    ```
 
 3. **Build and start the application:**
