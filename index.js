@@ -25,20 +25,41 @@ app.use((req, res, next) => {
   next();
 });
 
-// MongoDB connection with better error handling
-const connectDB = async () => {
+// MongoDB connection with enhanced error handling and retry logic
+const connectDB = async (retryCount = 0) => {
+  const maxRetries = 3;
+  
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000, // Reduced from 10s to 5s
-      socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-      connectTimeoutMS: 10000, // Give up initial connection after 10s
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      bufferCommands: false // Disable mongoose buffering
+      serverSelectionTimeoutMS: 8000, // Increased to 8s
+      socketTimeoutMS: 60000, // Increased to 60s
+      connectTimeoutMS: 15000, // Increased to 15s
+      maxPoolSize: 5, // Reduced pool size for stability
+      minPoolSize: 1, // Minimum connections
+      bufferCommands: false, // Disable mongoose buffering
+      retryWrites: true, // Enable retry writes
+      retryReads: true, // Enable retry reads
+      heartbeatFrequencyMS: 30000, // Heartbeat every 30 seconds
     });
+    
     console.log('✅ MongoDB connected successfully');
     console.log(`📊 Database: ${conn.connection.name}`);
     console.log(`🌐 Host: ${conn.connection.host}`);
-    console.log('🔧 Buffering disabled globally');
+    console.log('🔧 Enhanced connection settings applied');
+    
+    // Handle connection events
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB connection error:', err.message);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️ MongoDB disconnected. Attempting to reconnect...');
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB reconnected successfully');
+    });
+    
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
     
@@ -52,8 +73,19 @@ const connectDB = async () => {
       console.error('🔐 Authentication Issue: Please check your username and password');
     }
     
-    // Don't exit the process, let it retry
-    console.log('🔄 Will retry connection when needed...');
+    if (error.message.includes('timeout') || error.message.includes('ENOTFOUND')) {
+      console.error('🌐 Network Issue: Please check your internet connection');
+    }
+    
+    // Retry logic
+    if (retryCount < maxRetries) {
+      console.log(`🔄 Retrying connection (${retryCount + 1}/${maxRetries}) in 5 seconds...`);
+      setTimeout(() => {
+        connectDB(retryCount + 1);
+      }, 5000);
+    } else {
+      console.error('❌ Max connection retries reached. App will continue with degraded functionality.');
+    }
   }
 };
 
@@ -62,19 +94,34 @@ connectDB();
 
 // Import routes
 const authRoutes = require('./backend/routes/auth');
+const excelRoutes = require('./backend/routes/excel');
 
-// Database connection middleware
-const checkDbConnection = (req, res, next) => {
+// Enhanced database connection middleware
+const checkDbConnection = async (req, res, next) => {
   const dbState = mongoose.connection.readyState;
   
   if (dbState !== 1) {
     console.error(`❌ Database not ready (state: ${dbState}), rejecting request`);
     console.error('Database states: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting');
     
+    // If connecting, wait a short time
+    if (dbState === 2) {
+      console.log('⏳ Database connecting, waiting 2 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check again after waiting
+      if (mongoose.connection.readyState === 1) {
+        console.log('✅ Database connection verified after wait');
+        next();
+        return;
+      }
+    }
+    
     return res.status(503).json({ 
-      message: 'Database connection not available',
+      message: 'Database connection not available. Please try again in a moment.',
       status: 'service_unavailable',
-      dbState: dbState
+      dbState: dbState,
+      hint: 'If this persists, there may be a network connectivity issue.'
     });
   }
   
@@ -84,6 +131,7 @@ const checkDbConnection = (req, res, next) => {
 
 // API routes with database connection check
 app.use('/api/auth', checkDbConnection, authRoutes);
+app.use('/api/excel', checkDbConnection, excelRoutes);
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

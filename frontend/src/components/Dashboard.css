@@ -784,3 +784,271 @@
     font-size: 2rem;
   }
 }
+
+/* Upload Progress Styles */
+.upload-progress-section {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--light-gray);
+  border-radius: 12px;
+  border: 1px solid rgba(229, 229, 229, 0.5);
+}
+
+.upload-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.status-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-icon {
+  font-size: 1.2rem;
+}
+
+.status-icon.spinning {
+  animation: spin 1s linear infinite;
+  color: var(--orange);
+}
+
+.status-icon.success {
+  color: var(--success-green);
+}
+
+.status-icon.error {
+  color: var(--error-red);
+}
+
+.status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.status-message {
+  font-weight: 600;
+  color: var(--navy);
+  font-size: 0.95rem;
+}
+
+.file-name {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(229, 229, 229, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.uploading {
+  background: var(--gradient-orange);
+}
+
+.progress-fill.processing {
+  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+}
+
+.progress-fill.completed {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--navy);
+  min-width: 40px;
+  text-align: right;
+}
+
+.file-upload-label.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loading Files Styles */
+.loading-files {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.loading-icon {
+  font-size: 2rem;
+  color: var(--orange);
+}
+
+.loading-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Processing spinner for individual files */
+.processing-spinner {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--orange);
+  animation: spin 1s linear infinite;
+}
+
+/* Enhanced file rows info */
+.file-rows {
+  font-size: 0.7rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Spin animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Button disabled state */
+.file-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Enhanced hover effects */
+.upload-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.recent-file-item:hover .file-icon-wrapper {
+  transform: scale(1.1);
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+.selected-file {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.upload-progress-section {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Auto-redirect Section */
+.auto-redirect-section {
+  margin-top: 20px;
+  padding: 25px;
+  background: linear-gradient(135deg, var(--success-green) 0%, #059669 100%);
+  border-radius: 12px;
+  color: var(--white);
+  animation: slideInUp 0.4s ease-out;
+  box-shadow: var(--shadow-lg);
+}
+
+.redirect-message {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.redirect-icon {
+  font-size: 2rem;
+  color: var(--white);
+  animation: pulse 2s infinite;
+}
+
+.redirect-text p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.redirect-text p:first-child {
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+}
+
+.redirect-text p:last-child {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.redirect-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.redirect-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.redirect-btn.primary {
+  background: var(--white);
+  color: var(--success-green);
+}
+
+.redirect-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.redirect-btn.secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--white);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.redirect-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
