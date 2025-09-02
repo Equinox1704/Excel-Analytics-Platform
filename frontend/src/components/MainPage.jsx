@@ -34,7 +34,7 @@ export default function MainPage({ onAuthenticated }) {
           onLearnMore={handleLearnMore}
         />
       )}
-      {(page === "login" || page === "signup") && (
+      {(page === "login" || page === "signup" || page === "forgot-password") && (
         <AuthPage 
           initialMode={page} 
           onSwitchMode={setPage} 
