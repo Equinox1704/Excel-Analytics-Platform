@@ -136,16 +136,25 @@ export async function getFileStatus(fileId) {
 export async function getUserFiles() {
   const token = localStorage.getItem('token');
   
+  console.log('getUserFiles called with token:', token ? 'Token present' : 'No token');
+  
   if (!token) {
     throw new Error('Please log in to view your files');
   }
 
   try {
-    const res = await fetch(`${API_URL}/excel/files`, {
+    const url = `${API_URL}/excel/files`;
+    console.log('Fetching from URL:', url);
+    
+    const res = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
+    
+    console.log('Response status:', res.status);
+    console.log('Response headers:', res.headers);
     
     if (!res.ok) {
       if (res.status === 401) {
@@ -155,11 +164,21 @@ export async function getUserFiles() {
       if (res.status === 503) {
         throw new Error('Service temporarily unavailable. Please try again in a moment.');
       }
+      if (res.status === 500) {
+        console.error('Server error (500) - checking response text...');
+        const errorText = await res.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Server error: ${errorText || 'Internal Server Error'}`);
+      }
       const error = await res.json();
       throw new Error(error.message || 'Failed to fetch files');
     }
-    return res.json();
+    
+    const data = await res.json();
+    console.log('Files data received:', data);
+    return data;
   } catch (error) {
+    console.error('getUserFiles error:', error);
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       throw new Error('Network connection error. Please check your internet connection.');
     }

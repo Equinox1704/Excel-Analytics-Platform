@@ -7,13 +7,25 @@ const path = require('path');
 // Load environment variables
 dotenv.config();
 
+// Check if we're in development mode
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const PORT = process.env.PORT || 5000;
+
 // Disable mongoose buffering globally BEFORE any model imports
 mongoose.set('bufferCommands', false);
 
 const app = express();
 
-// CORS configuration
-app.use(cors());
+// Enhanced CORS configuration for development
+if (isDevelopment) {
+  app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:5000'],
+    credentials: true
+  }));
+} else {
+  app.use(cors());
+}
+
 app.use(express.json());
 
 // Request logging middleware
@@ -31,15 +43,21 @@ const connectDB = async (retryCount = 0) => {
   
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 8000, // Increased to 8s
-      socketTimeoutMS: 60000, // Increased to 60s
-      connectTimeoutMS: 15000, // Increased to 15s
-      maxPoolSize: 5, // Reduced pool size for stability
-      minPoolSize: 1, // Minimum connections
+      serverSelectionTimeoutMS: 30000, // Increased to 30s for slow networks
+      socketTimeoutMS: 60000, // Keep at 60s
+      connectTimeoutMS: 30000, // Increased to 30s for initial connection
+      maxPoolSize: 10, // Increased for multiple users
+      minPoolSize: 2, // Minimum connections
       bufferCommands: false, // Disable mongoose buffering
       retryWrites: true, // Enable retry writes
       retryReads: true, // Enable retry reads
       heartbeatFrequencyMS: 30000, // Heartbeat every 30 seconds
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+      // Additional options for better reliability
+      compressors: 'snappy,zlib', // Enable compression
+      readPreference: 'primaryPreferred', // Prefer primary but allow secondary reads
+      w: 'majority', // Write concern for durability
+      journal: true, // Enable journaling
     });
     
     console.log('✅ MongoDB connected successfully');
@@ -180,6 +198,84 @@ app.get('/api/test', (req, res) => {
 });
 
 // Database test endpoint
+app.get('/api/db-test', async (req, res) => {
+  try {
+    const dbStatus = mongoose.connection.readyState;
+    const dbStates = {
+      0: 'disconnected',
+      1: 'connected',
+      2: 'connecting', 
+      3: 'disconnecting'
+    };
+    
+    const startTime = Date.now();
+    let testResult = {};
+    
+    if (dbStatus === 1) {
+      try {
+        // Test database query
+        const User = require('./backend/models/User');
+        const testQuery = await User.countDocuments().maxTimeMS(5000);
+        const queryTime = Date.now() - startTime;
+        
+        testResult = {
+          success: true,
+          queryTime: `${queryTime}ms`,
+          userCount: testQuery,
+          message: 'Database query successful'
+        };
+      } catch (queryError) {
+        testResult = {
+          success: false,
+          error: queryError.message,
+          message: 'Database query failed'
+        };
+      }
+    } else {
+      testResult = {
+        success: false,
+        message: 'Database not connected'
+      };
+    }
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      database: {
+        status: dbStates[dbStatus],
+        name: mongoose.connection.name || 'not connected',
+        host: mongoose.connection.host || 'not connected',
+        readyState: dbStatus
+      },
+      test: testResult,
+      server: {
+        port: PORT,
+        uptime: `${Math.floor(process.uptime())}s`,
+        nodeVersion: process.version
+      },
+      troubleshooting: {
+        tips: [
+          'Check internet connection',
+          'Verify MongoDB Atlas IP whitelist includes 0.0.0.0/0',
+          'Confirm database user credentials',
+          'Check MongoDB Atlas cluster status',
+          'Try accessing from different network/location'
+        ],
+        commonErrors: {
+          'MongoServerSelectionError': 'Cannot reach MongoDB server - check network/IP whitelist',
+          'MongoTimeoutError': 'Query took too long - check connection speed',
+          'MongoNetworkError': 'Network connectivity issue',
+          'MongoAuthenticationError': 'Invalid database credentials'
+        }
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 app.get('/api/test-db', async (req, res) => {
   try {
     console.log('🧪 Starting database test...');
@@ -220,6 +316,7 @@ app.get('/api/test-db', async (req, res) => {
 });
 
 // Serve static files from React build
+// Always serve static files for unified server approach
 app.use(express.static(path.join(__dirname, 'frontend/build')));
 
 // Serve React app for all non-API routes
@@ -227,10 +324,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend/build/index.html'));
 });
 
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Unified Server running on port ${PORT}`);
-  console.log(`📱 Frontend: http://localhost:${PORT}`);
+  console.log(` Frontend: http://localhost:${PORT}`);
   console.log(`🔗 API: http://localhost:${PORT}/api`);
   console.log(`🏗️  Architecture: Unified (Frontend + Backend)`);
 });

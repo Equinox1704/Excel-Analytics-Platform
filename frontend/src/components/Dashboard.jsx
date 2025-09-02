@@ -16,7 +16,8 @@ import {
   faPlus,
   faSpinner,
   faCheckCircle,
-  faExclamationTriangle
+  faExclamationTriangle,
+  faTable
 } from '@fortawesome/free-solid-svg-icons';
 import { uploadExcelFile, getFileStatus, getUserFiles, deleteFile } from '../api';
 import AnalyticsView from './AnalyticsView';
@@ -24,6 +25,8 @@ import "./Dashboard.css";
 import logo from "../assets/logo.png";
 
 export default function Dashboard({ user, onLogout }) {
+  console.log('Dashboard component rendered with user:', user);
+  
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -50,7 +53,7 @@ export default function Dashboard({ user, onLogout }) {
         setTimeout(() => onLogout(), 1000);
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onLogout]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadUserFiles = async () => {
     const token = localStorage.getItem('token');
@@ -62,7 +65,9 @@ export default function Dashboard({ user, onLogout }) {
 
     try {
       setIsLoadingFiles(true);
+      console.log('Loading user files...');
       const files = await getUserFiles();
+      console.log('Files loaded:', files);
       setRecentFiles(files);
     } catch (error) {
       console.error('Failed to load files:', error);
@@ -85,6 +90,8 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  // Demo data function (currently unused but kept for potential future use)
+  // eslint-disable-next-line no-unused-vars
   const loadDemoFiles = () => {
     // Demo data for display purposes
     setRecentFiles([
@@ -231,7 +238,7 @@ export default function Dashboard({ user, onLogout }) {
             setAutoRedirectCount(prev => {
               if (prev <= 1) {
                 clearInterval(countdownInterval);
-                // Auto-redirect to analytics
+                // Auto-redirect to analytics with correct file data
                 const completedFile = {
                   id: fileId,
                   name: selectedFile.name
@@ -338,6 +345,57 @@ export default function Dashboard({ user, onLogout }) {
     });
   };
 
+  const getUserInitials = (user) => {
+    console.log('getUserInitials called with user:', user);
+    
+    if (!user) {
+      console.log('No user object, returning U');
+      return 'U';
+    }
+    
+    // Try to get initials from username first (this is what's actually available)
+    if (user.username) {
+      console.log('User has username:', user.username);
+      const names = user.username.trim().split(' ');
+      if (names.length >= 2) {
+        const initials = (names[0][0] + names[names.length - 1][0]).toUpperCase();
+        console.log('Returning initials from username (multiple words):', initials);
+        return initials;
+      } else if (names.length === 1) {
+        const initial = user.username[0].toUpperCase();
+        console.log('Returning initial from username (single word):', initial);
+        return initial;
+      }
+    }
+    
+    // Try to get initials from name if available
+    if (user.name) {
+      console.log('User has name:', user.name);
+      const names = user.name.trim().split(' ');
+      if (names.length >= 2) {
+        const initials = (names[0][0] + names[names.length - 1][0]).toUpperCase();
+        console.log('Returning initials from full name:', initials);
+        return initials;
+      } else if (names.length === 1) {
+        const initial = names[0][0].toUpperCase();
+        console.log('Returning initial from single name:', initial);
+        return initial;
+      }
+    }
+    
+    // Fallback to email if name/username is not available
+    if (user.email) {
+      console.log('User has email:', user.email);
+      const initial = user.email[0].toUpperCase();
+      console.log('Returning initial from email:', initial);
+      return initial;
+    }
+    
+    console.log('No name, email, or username found, returning U');
+    // Ultimate fallback
+    return 'U';
+  };
+
   return (
     <>
       {showAnalytics ? (
@@ -357,7 +415,7 @@ export default function Dashboard({ user, onLogout }) {
           <div className="dashboard-user-section">
             <div className="user-profile" onClick={() => setShowUserMenu(!showUserMenu)}>
               <div className="user-avatar">
-                <FontAwesomeIcon icon={faUser} className="user-avatar-icon" />
+                <span className="user-initials">{getUserInitials(user)}</span>
               </div>
               
               {showUserMenu && (
@@ -483,11 +541,12 @@ export default function Dashboard({ user, onLogout }) {
                         <button 
                           onClick={() => {
                             cancelAutoRedirect();
-                            const completedFile = {
-                              id: uploadMessage.includes('successfully') ? 'current' : null,
-                              name: selectedFile.name
+                            // Find the most recent file or use the uploaded file
+                            const latestFile = recentFiles.length > 0 ? recentFiles[0] : {
+                              id: uploadMessage.includes('successfully') ? 'latest' : null,
+                              name: selectedFile?.name || 'uploaded_file'
                             };
-                            setSelectedAnalyticsFile(completedFile);
+                            setSelectedAnalyticsFile(latestFile);
                             setShowAnalytics(true);
                           }}
                           className="redirect-btn primary"
@@ -574,11 +633,18 @@ export default function Dashboard({ user, onLogout }) {
                           </span>
                           <span className="file-charts">
                             <FontAwesomeIcon icon={faChartBar} className="meta-icon" />
-                            {file.charts} charts
+                            {file.charts || 0} charts
                           </span>
                           {file.totalRows && (
                             <span className="file-rows">
-                              📊 {file.totalRows} rows
+                              <FontAwesomeIcon icon={faTable} className="meta-icon" />
+                              {file.totalRows} rows
+                            </span>
+                          )}
+                          {file.totalSheets && (
+                            <span className="file-sheets">
+                              <FontAwesomeIcon icon={faFileExcel} className="meta-icon" />
+                              {file.totalSheets} sheet{file.totalSheets !== 1 ? 's' : ''}
                             </span>
                           )}
                         </div>

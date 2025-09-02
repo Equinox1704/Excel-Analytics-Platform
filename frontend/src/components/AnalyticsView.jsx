@@ -115,6 +115,30 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
     const data = getFilteredData();
     if (!data.length || !xAxis || !yAxis) return null;
 
+    console.log('Preparing chart data:', { chartType, xAxis, yAxis, dataLength: data.length });
+
+    // For scatter plots, we need {x, y} format
+    if (chartType === 'scatter') {
+      const scatterData = data.map(row => ({
+        x: isNaN(row[xAxis]) ? 0 : Number(row[xAxis]),
+        y: isNaN(row[yAxis]) ? 0 : Number(row[yAxis])
+      })).filter(point => point.x !== 0 || point.y !== 0); // Remove invalid points
+
+      return {
+        datasets: [{
+          label: `${yAxis} vs ${xAxis}`,
+          data: scatterData,
+          backgroundColor: 'rgba(59, 130, 246, 0.6)',
+          borderColor: '#3B82F6',
+          borderWidth: 1,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          showLine: false
+        }]
+      };
+    }
+
+    // For other chart types
     const labels = data.map(row => String(row[xAxis]));
     const values = data.map(row => {
       const val = row[yAxis];
@@ -141,10 +165,6 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
       backgroundColor = 'rgba(59, 130, 246, 0.1)';
       borderColor = '#3B82F6';
       borderWidth = 3;
-    } else if (chartType === 'scatter') {
-      backgroundColor = 'rgba(59, 130, 246, 0.6)';
-      borderColor = '#3B82F6';
-      borderWidth = 1;
     } else {
       backgroundColor = 'rgba(59, 130, 246, 0.8)';
       borderColor = '#3B82F6';
@@ -170,17 +190,13 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
       dataset.pointHoverRadius = 7;
     }
 
-    // Add scatter-specific properties
-    if (chartType === 'scatter') {
-      dataset.showLine = false;
-      dataset.pointRadius = 6;
-      dataset.pointHoverRadius = 8;
-    }
-
-    return {
+    const chartData = {
       labels,
       datasets: [dataset]
     };
+
+    console.log('Chart data prepared:', chartData);
+    return chartData;
   };
 
   const getChartOptions = () => {
@@ -341,8 +357,12 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
 
   const renderChart = () => {
     const data = prepareChartData();
-    if (!data) return null;
+    if (!data) {
+      console.log('No chart data available');
+      return null;
+    }
 
+    console.log('Rendering chart:', { chartType, data });
     const options = getChartOptions();
     const commonProps = {
       ref: chartRef,
@@ -350,19 +370,28 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
       options
     };
 
-    switch (chartType) {
-      case 'line':
-        return <Line {...commonProps} />;
-      case 'bar':
-        return <Bar {...commonProps} />;
-      case 'pie':
-        return <Pie {...commonProps} />;
-      case 'doughnut':
-        return <Doughnut {...commonProps} />;
-      case 'scatter':
-        return <Scatter {...commonProps} />;
-      default:
-        return <Bar {...commonProps} />;
+    try {
+      switch (chartType) {
+        case 'line':
+          return <Line {...commonProps} />;
+        case 'bar':
+          return <Bar {...commonProps} />;
+        case 'pie':
+          return <Pie {...commonProps} />;
+        case 'doughnut':
+          return <Doughnut {...commonProps} />;
+        case 'scatter':
+          return <Scatter {...commonProps} />;
+        default:
+          return <Bar {...commonProps} />;
+      }
+    } catch (error) {
+      console.error('Chart rendering error:', error);
+      return (
+        <div className="chart-error">
+          <p>Error rendering chart: {error.message}</p>
+        </div>
+      );
     }
   };
 

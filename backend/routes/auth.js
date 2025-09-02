@@ -61,26 +61,92 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    console.log('🔐 Login attempt for:', email);
+    console.log('🔗 Database connection state:', mongoose.connection.readyState);
+    
+    // Check database connection before proceeding
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ Database not connected. State:', mongoose.connection.readyState);
+      return res.status(503).json({ 
+        message: 'Database connection unavailable. Please try again in a moment.',
+        error: 'Database temporarily unavailable'
+      });
+    }
+    
+    console.log('✅ Database connection verified for login request');
+    
     const user = await User.findOne({ email })
-      .maxTimeMS(5000)
+      .maxTimeMS(10000) // Increased timeout to 10 seconds
       .setOptions({ bufferCommands: false });
       
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    console.log('👤 User lookup result:', user ? 'Found' : 'Not found');
+      
+    if (!user) {
+      console.log('❌ User not found:', email);
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
     
+    console.log('🔑 Comparing password for user:', user.email);
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
     
+    if (!isMatch) {
+      console.log('❌ Password mismatch for user:', email);
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    
+    console.log('✅ Login successful for user:', email);
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { id: user._id, username: user.username, email: user.email } });
+    
+    res.json({ 
+      token, 
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        email: user.email 
+      } 
+    });
+    
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('❌ Login error details:');
+    console.error('Error name:', err.name);
+    console.error('Error message:', err.message);
+    console.error('Error code:', err.code);
+    console.error('Full error:', err);
+    
+    // Handle specific MongoDB errors
+    if (err.name === 'MongoServerSelectionError') {
+      return res.status(503).json({ 
+        message: 'Unable to connect to database server. Please check your internet connection and try again.',
+        error: 'Database server unreachable'
+      });
+    }
+    
+    if (err.name === 'MongoTimeoutError' || err.message.includes('timeout')) {
+      return res.status(503).json({ 
+        message: 'Database operation timed out. Please try again.',
+        error: 'Database timeout'
+      });
+    }
+    
+    if (err.name === 'MongoNetworkError') {
+      return res.status(503).json({ 
+        message: 'Network error connecting to database. Please check your internet connection.',
+        error: 'Network connection failed'
+      });
+    }
+    
     if (err.name === 'MongooseError' && err.message.includes('buffering timed out')) {
       return res.status(503).json({ 
         message: 'Database connection timeout. Please try again.',
         error: 'Database temporarily unavailable'
       });
     }
-    res.status(500).json({ message: 'Server error' });
+    
+    // Generic server error
+    res.status(500).json({ 
+      message: 'Login failed due to server error. Please try again.',
+      error: 'Internal server error'
+    });
   }
 });
 

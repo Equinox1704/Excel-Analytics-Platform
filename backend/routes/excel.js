@@ -3,6 +3,7 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 const ExcelFile = require('../models/ExcelFile');
 const authenticateToken = require('../middleware/auth');
 const router = express.Router();
@@ -212,6 +213,9 @@ router.get('/status/:fileId', authenticateToken, async (req, res) => {
 // Get user's files
 router.get('/files', authenticateToken, async (req, res) => {
   try {
+    console.log('📁 GET /files - User ID:', req.user._id);
+    console.log('📁 Database connection state:', mongoose.connection.readyState);
+    
     const files = await ExcelFile.find({ 
       userId: req.user._id 
     })
@@ -219,8 +223,13 @@ router.get('/files', authenticateToken, async (req, res) => {
     .sort({ uploadDate: -1 })
     .limit(20)
     .maxTimeMS(8000)
-    .setOptions({ bufferCommands: false })
+    .setOptions({ 
+      bufferCommands: false,
+      allowDiskUse: true 
+    })
     .lean();
+
+    console.log('📁 Found files count:', files.length);
 
     const formattedFiles = files.map(file => ({
       id: file._id,
@@ -234,15 +243,66 @@ router.get('/files', authenticateToken, async (req, res) => {
       totalSheets: file.metadata?.totalSheets || 0
     }));
 
+    console.log('📁 Formatted files:', formattedFiles);
     res.json(formattedFiles);
   } catch (error) {
-    console.error('Files fetch error:', error);
+    console.error('❌ Files fetch error:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
     
     if (error.name === 'MongoNetworkTimeoutError' || error.message.includes('timeout')) {
       return res.status(503).json({ message: 'Database temporarily unavailable. Please try again.' });
     }
     
-    res.status(500).json({ message: 'Failed to fetch files' });
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+    
+    if (error.message.includes('buffering timed out')) {
+      return res.status(503).json({ message: 'Database connection timeout. Please try again.' });
+    }
+    
+    if (error.code === 292 || error.message.includes('Sort exceeded memory limit')) {
+      console.log('🔄 Memory limit exceeded, trying fallback query without sort...');
+      try {
+        // Fallback: Get files without sort (will be in insertion order)
+        const fallbackFiles = await ExcelFile.find({ 
+          userId: req.user._id 
+        })
+        .select('originalName uploadDate status metadata charts size')
+        .limit(20)
+        .maxTimeMS(8000)
+        .setOptions({ bufferCommands: false })
+        .lean();
+        
+        // Sort in JavaScript (client-side) for smaller datasets
+        const sortedFiles = fallbackFiles.sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
+        
+        const formattedFiles = sortedFiles.map(file => ({
+          id: file._id,
+          name: file.originalName,
+          uploadDate: file.uploadDate.toISOString().split('T')[0],
+          size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+          type: 'excel',
+          status: file.status,
+          charts: file.charts ? file.charts.length : 0,
+          totalRows: file.metadata?.totalRows || 0,
+          totalSheets: file.metadata?.totalSheets || 0
+        }));
+        
+        console.log('✅ Fallback query successful, returning', formattedFiles.length, 'files');
+        return res.json(formattedFiles);
+      } catch (fallbackError) {
+        console.error('❌ Fallback query also failed:', fallbackError);
+        return res.status(503).json({ message: 'Database query failed. Please try again later.' });
+      }
+    }
+    
+    res.status(500).json({ 
+      message: 'Failed to fetch files',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 });
 
