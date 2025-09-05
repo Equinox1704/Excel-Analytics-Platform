@@ -25,10 +25,20 @@ import {
   faExpand,
   faCompress,
   faSpinner,
-  faChartLine
+  faChartLine,
+  faCube,
+  faChartArea,
+  faChartPie,
+  faRocket,
+  faEye,
+  faDownload,
+  faMagic,
+  faFilter,
+  faSync
 } from '@fortawesome/free-solid-svg-icons';
 import { saveAs } from 'file-saver';
 import { getFileData } from '../api';
+import Chart3D from './Chart3D';
 import './AnalyticsView.css';
 import logo from "../assets/logo.png";
 
@@ -52,12 +62,19 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
   const [chartType, setChartType] = useState('bar');
   const [xAxis, setXAxis] = useState('');
   const [yAxis, setYAxis] = useState('');
+  const [zAxis, setZAxis] = useState(''); // For 3D charts
   const [chartTitle, setChartTitle] = useState('Data Visualization');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [view3D, setView3D] = useState(false);
+  const [chartColors, setChartColors] = useState(['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6']);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [dataFilter, setDataFilter] = useState('');
+  const [chartAnimation, setChartAnimation] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(false);
   
   const chartRef = useRef(null);
   const fullscreenRef = useRef(null);
@@ -66,6 +83,19 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
     loadFileData();
   }, [fileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-refresh effect
+  useEffect(() => {
+    let interval;
+    if (autoRefresh && fileData) {
+      interval = setInterval(() => {
+        loadFileData();
+      }, 30000); // Refresh every 30 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [autoRefresh, fileData]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (fileData && fileData.sheets && fileData.sheets[selectedSheet]) {
       const sheet = fileData.sheets[selectedSheet];
@@ -73,9 +103,10 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
         const columns = Object.keys(sheet.data[0]);
         if (!xAxis && columns.length > 0) setXAxis(columns[0]);
         if (!yAxis && columns.length > 1) setYAxis(columns[1]);
+        if (!zAxis && columns.length > 2) setZAxis(columns[2]);
       }
     }
-  }, [fileData, selectedSheet, xAxis, yAxis]);
+  }, [fileData, selectedSheet, xAxis, yAxis, zAxis]);
 
   const loadFileData = async () => {
     try {
@@ -102,13 +133,46 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
 
   const getFilteredData = () => {
     const data = getCurrentSheetData();
-    if (!searchTerm) return data;
-    
-    return data.filter(row => 
-      Object.values(row).some(value => 
-        String(value).toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
+    if (!data || data.length === 0) return [];
+
+    let filteredData = data;
+
+    // Apply search filter
+    if (searchTerm) {
+      filteredData = filteredData.filter(row => {
+        return Object.values(row).some(value => 
+          value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
+    }
+
+    // Apply data filter
+    if (dataFilter) {
+      try {
+        filteredData = filteredData.filter(row => {
+          // Simple filter: column_name > value or column_name = value
+          const [column, operator, value] = dataFilter.split(/\s*(>|<|=|>=|<=)\s*/);
+          if (column && operator && value) {
+            const rowValue = parseFloat(row[column.trim()]) || 0;
+            const filterValue = parseFloat(value.trim()) || 0;
+            
+            switch (operator.trim()) {
+              case '>': return rowValue > filterValue;
+              case '<': return rowValue < filterValue;
+              case '>=': return rowValue >= filterValue;
+              case '<=': return rowValue <= filterValue;
+              case '=': return Math.abs(rowValue - filterValue) < 0.001;
+              default: return true;
+            }
+          }
+          return true;
+        });
+      } catch (e) {
+        console.warn('Invalid filter expression:', dataFilter);
+      }
+    }
+
+    return filteredData;
   };
 
   const prepareChartData = () => {
@@ -203,15 +267,20 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      animation: {
+        duration: chartAnimation ? 2000 : 0,
+        easing: 'easeInOutQuart',
+      },
       plugins: {
         title: {
           display: true,
           text: chartTitle,
           font: {
-            size: 16,
+            size: 18,
             weight: 'bold'
           },
-          color: '#1a365d'
+          color: '#1a365d',
+          padding: 20
         },
         legend: {
           display: true,
@@ -220,23 +289,32 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
             color: '#1a365d',
             font: {
               size: 12
-            }
+            },
+            padding: 15,
+            usePointStyle: true
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(26, 54, 93, 0.9)',
+          backgroundColor: 'rgba(26, 54, 93, 0.95)',
           titleColor: '#fff',
           bodyColor: '#fff',
           borderColor: '#3B82F6',
-          borderWidth: 1,
+          borderWidth: 2,
+          cornerRadius: 8,
           titleFont: {
             size: 14,
             weight: 'bold'
           },
           bodyFont: {
             size: 12
-          }
+          },
+          padding: 12,
+          displayColors: true
         }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
       }
     };
 
@@ -362,7 +440,22 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
       return null;
     }
 
-    console.log('Rendering chart:', { chartType, data });
+    console.log('Rendering chart:', { chartType, data, view3D });
+    
+    // Render 3D chart if 3D mode is enabled
+    if (view3D) {
+      return (
+        <Chart3D 
+          data={getFilteredData()} 
+          xAxis={xAxis} 
+          yAxis={yAxis} 
+          zAxis={zAxis} 
+          chartType={chartType} 
+        />
+      );
+    }
+    
+    // Render 2D charts
     const options = getChartOptions();
     const commonProps = {
       ref: chartRef,
@@ -476,6 +569,31 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
             </div>
           </div>
           <div className="analytics-header-right">
+            {/* Quick Action Buttons */}
+            <div className="quick-actions">
+              <button 
+                className={`action-btn ${view3D ? 'active' : ''}`}
+                onClick={() => setView3D(!view3D)}
+                title="Toggle 3D View"
+              >
+                <FontAwesomeIcon icon={faCube} />
+              </button>
+              <button 
+                className="action-btn"
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                title={autoRefresh ? "Disable Auto Refresh" : "Enable Auto Refresh"}
+              >
+                <FontAwesomeIcon icon={faSync} className={autoRefresh ? 'spinning' : ''} />
+              </button>
+              <button 
+                className="action-btn"
+                onClick={() => downloadChart('png')}
+                title="Quick Download PNG"
+              >
+                <FontAwesomeIcon icon={faDownload} />
+              </button>
+            </div>
+            
             <button 
               onClick={() => setShowSettings(!showSettings)}
               className={`settings-btn ${showSettings ? 'active' : ''}`}
@@ -494,67 +612,180 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
         </div>
       </header>
 
-      {/* Settings Panel */}
+      {/* Enhanced Settings Panel */}
       {showSettings && (
         <div className="settings-panel">
-          <div className="settings-grid">
-            <div className="setting-group">
-              <label>Chart Type</label>
-              <select value={chartType} onChange={(e) => setChartType(e.target.value)}>
-                <option value="bar">Bar Chart</option>
-                <option value="line">Line Chart</option>
-                <option value="pie">Pie Chart</option>
-                <option value="doughnut">Doughnut Chart</option>
-                <option value="scatter">Scatter Plot</option>
-              </select>
+          <div className="settings-header">
+            <h3>
+              <FontAwesomeIcon icon={faCog} style={{marginRight: '10px', color: 'var(--orange)'}} />
+              Chart Configuration
+            </h3>
+            <div className="settings-tabs">
+              <button 
+                className={`tab ${!showAdvancedOptions ? 'active' : ''}`}
+                onClick={() => setShowAdvancedOptions(false)}
+              >
+                Basic
+              </button>
+              <button 
+                className={`tab ${showAdvancedOptions ? 'active' : ''}`}
+                onClick={() => setShowAdvancedOptions(true)}
+              >
+                Advanced
+              </button>
             </div>
-            
-            <div className="setting-group">
-              <label>X-Axis</label>
-              <select value={xAxis} onChange={(e) => setXAxis(e.target.value)}>
-                <option value="">Select Column</option>
-                {columns.map(col => (
-                  <option key={col} value={col}>{col}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="setting-group">
-              <label>Y-Axis</label>
-              <select value={yAxis} onChange={(e) => setYAxis(e.target.value)}>
-                <option value="">Select Column</option>
-                {columns.map(col => (
-                  <option key={col} value={col}>{col}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="setting-group">
-              <label>Chart Title</label>
-              <input 
-                type="text" 
-                value={chartTitle} 
-                onChange={(e) => setChartTitle(e.target.value)}
-                placeholder="Enter chart title"
-              />
-            </div>
+          </div>
 
-            {fileData?.sheets && fileData.sheets.length > 1 && (
-              <div className="setting-group">
-                <label>Sheet</label>
-                <select value={selectedSheet} onChange={(e) => setSelectedSheet(Number(e.target.value))}>
-                  {fileData.sheets.map((sheet, index) => (
-                    <option key={index} value={index}>
-                      {sheet.name || `Sheet ${index + 1}`}
-                    </option>
-                  ))}
-                </select>
+          <div className="settings-content">
+            {!showAdvancedOptions ? (
+              // Basic Settings
+              <div className="settings-grid">
+                <div className="setting-group">
+                  <label>Chart Type</label>
+                  <select value={chartType} onChange={(e) => setChartType(e.target.value)}>
+                    <option value="bar">📊 Bar Chart</option>
+                    <option value="line">📈 Line Chart</option>
+                    <option value="pie">🥧 Pie Chart</option>
+                    <option value="doughnut">🍩 Doughnut Chart</option>
+                    <option value="scatter">🎯 Scatter Plot</option>
+                  </select>
+                </div>
+                
+                <div className="setting-group">
+                  <label>Visualization Mode</label>
+                  <div className="toggle-group">
+                    <button 
+                      className={`toggle-btn ${!view3D ? 'active' : ''}`}
+                      onClick={() => setView3D(false)}
+                    >
+                      <FontAwesomeIcon icon={faChartBar} /> 2D
+                    </button>
+                    <button 
+                      className={`toggle-btn ${view3D ? 'active' : ''}`}
+                      onClick={() => setView3D(true)}
+                    >
+                      <FontAwesomeIcon icon={faCube} /> 3D
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="setting-group">
+                  <label>X-Axis</label>
+                  <select value={xAxis} onChange={(e) => setXAxis(e.target.value)}>
+                    <option value="">Select Column</option>
+                    {columns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="setting-group">
+                  <label>Y-Axis</label>
+                  <select value={yAxis} onChange={(e) => setYAxis(e.target.value)}>
+                    <option value="">Select Column</option>
+                    {columns.map(col => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {view3D && (
+                  <div className="setting-group">
+                    <label>Z-Axis (3D)</label>
+                    <select value={zAxis} onChange={(e) => setZAxis(e.target.value)}>
+                      <option value="">Select Column (Optional)</option>
+                      {columns.map(col => (
+                        <option key={col} value={col}>{col}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
+                <div className="setting-group full-width">
+                  <label>Chart Title</label>
+                  <input 
+                    type="text" 
+                    value={chartTitle} 
+                    onChange={(e) => setChartTitle(e.target.value)}
+                    placeholder="Enter chart title"
+                  />
+                </div>
+
+                {fileData?.sheets && fileData.sheets.length > 1 && (
+                  <div className="setting-group">
+                    <label>Sheet</label>
+                    <select value={selectedSheet} onChange={(e) => setSelectedSheet(Number(e.target.value))}>
+                      {fileData.sheets.map((sheet, index) => (
+                        <option key={index} value={index}>
+                          {sheet.name || `Sheet ${index + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Advanced Settings
+              <div className="settings-grid">
+                <div className="setting-group">
+                  <label>Data Filter</label>
+                  <div className="input-with-icon">
+                    <FontAwesomeIcon icon={faFilter} className="input-icon" />
+                    <input 
+                      type="text" 
+                      value={dataFilter} 
+                      onChange={(e) => setDataFilter(e.target.value)}
+                      placeholder="e.g., Sales > 1000"
+                    />
+                  </div>
+                  <small className="help-text">Format: column_name operator value (e.g., "Sales {'>'}  1000")</small>
+                </div>
+
+                <div className="setting-group">
+                  <label>Animation</label>
+                  <div className="toggle-group">
+                    <button 
+                      className={`toggle-btn ${chartAnimation ? 'active' : ''}`}
+                      onClick={() => setChartAnimation(!chartAnimation)}
+                    >
+                      <FontAwesomeIcon icon={faMagic} /> {chartAnimation ? 'Enabled' : 'Disabled'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="setting-group">
+                  <label>Auto Refresh</label>
+                  <div className="toggle-group">
+                    <button 
+                      className={`toggle-btn ${autoRefresh ? 'active' : ''}`}
+                      onClick={() => setAutoRefresh(!autoRefresh)}
+                    >
+                      <FontAwesomeIcon icon={faSync} /> {autoRefresh ? 'On' : 'Off'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="setting-group">
+                  <label>Search Data</label>
+                  <div className="input-with-icon">
+                    <FontAwesomeIcon icon={faSearch} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Search in data..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
           
           <div className="download-section">
-            <h4>Download Options</h4>
+            <h4>
+              <FontAwesomeIcon icon={faDownload} style={{marginRight: '8px'}} />
+              Export Options
+            </h4>
             <div className="download-buttons">
               <button onClick={() => downloadChart('png')} className="download-btn">
                 <FontAwesomeIcon icon={faFileImage} />
@@ -570,120 +801,209 @@ const AnalyticsView = ({ fileId, fileName, onBack }) => {
       )}
 
       <div className="analytics-content">
-        {/* Data Table Section - Full Width */}
-        <div className="data-section">
-          <div className="data-header">
-            <h3>
-              <FontAwesomeIcon icon={faTable} />
-              Data Preview
-            </h3>
-            <div className="data-controls">
-              <div className="search-box">
-                <FontAwesomeIcon icon={faSearch} className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search data..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+        {/* Main Chart Section - Prominent Display */}
+        <div className="chart-main-section">
+          <div className="chart-header">
+            <div className="chart-title-section">
+              <h2>
+                <FontAwesomeIcon icon={view3D ? faCube : faChartBar} style={{marginRight: '10px', color: 'var(--blue)'}} />
+                {chartTitle}
+              </h2>
+              <div className="chart-meta">
+                {view3D ? '3D Visualization' : '2D Chart'} • 
+                {chartType.charAt(0).toUpperCase() + chartType.slice(1)} • 
+                {getFilteredData().length} data points
               </div>
+            </div>
+            <div className="chart-actions">
+              <button 
+                className={`view-toggle ${!view3D ? 'active' : ''}`}
+                onClick={() => setView3D(false)}
+                title="2D View"
+              >
+                <FontAwesomeIcon icon={faChartBar} />
+              </button>
+              <button 
+                className={`view-toggle ${view3D ? 'active' : ''}`}
+                onClick={() => setView3D(true)}
+                title="3D View"
+              >
+                <FontAwesomeIcon icon={faCube} />
+              </button>
+              <button 
+                className="chart-action"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+              >
+                <FontAwesomeIcon icon={isFullscreen ? faCompress : faExpand} />
+              </button>
             </div>
           </div>
           
-          <div className="data-table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  {columns.map(col => (
-                    <th key={col}>{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.slice(0, 100).map((row, index) => (
-                  <tr key={index}>
-                    {columns.map(col => (
-                      <td key={col}>{String(row[col] || '')}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {data.length > 100 && (
-              <div className="table-footer">
-                Showing first 100 rows of {data.length} total rows
+          <div className="chart-container-main">
+            {prepareChartData() && (xAxis && yAxis) ? (
+              <div className="chart-display">
+                {renderChart()}
+                {/* Chart Info Overlay */}
+                <div className="chart-info-overlay">
+                  <div className="chart-badges">
+                    {view3D && <span className="badge badge-3d">3D</span>}
+                    {chartAnimation && <span className="badge badge-animated">Animated</span>}
+                    {autoRefresh && <span className="badge badge-refresh">Auto-Refresh</span>}
+                    {dataFilter && <span className="badge badge-filtered">Filtered</span>}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="no-chart-main">
+                <FontAwesomeIcon icon={faRocket} className="no-chart-icon" />
+                <div className="no-chart-content">
+                  {!xAxis || !yAxis ? (
+                    <div>
+                      <h3>Ready to create amazing visualizations!</h3>
+                      <p>Select X and Y axes from the settings panel to generate your chart</p>
+                      <div className="axis-status">
+                        <div className={`axis-item ${xAxis ? 'selected' : ''}`}>
+                          <FontAwesomeIcon icon={xAxis ? faEye : faSearch} />
+                          X-Axis: {xAxis || 'Not selected'}
+                        </div>
+                        <div className={`axis-item ${yAxis ? 'selected' : ''}`}>
+                          <FontAwesomeIcon icon={yAxis ? faEye : faSearch} />
+                          Y-Axis: {yAxis || 'Not selected'}
+                        </div>
+                      </div>
+                      <button 
+                        className="cta-button"
+                        onClick={() => setShowSettings(true)}
+                      >
+                        <FontAwesomeIcon icon={faCog} />
+                        Open Settings
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <h3>No data available</h3>
+                      <p>Try adjusting your search filters or check if the file has valid data.</p>
+                      <div className="debug-info">
+                        <div>Chart Type: {chartType}</div>
+                        <div>Data Rows: {getFilteredData().length}</div>
+                        <div>X-Axis: {xAxis}</div>
+                        <div>Y-Axis: {yAxis}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Chart Section - Smaller Section */}
-        <div className="chart-section">
-          <div className="chart-container">
-            {prepareChartData() ? (
-              renderChart()
-            ) : (
-              <div className="no-chart">
-                <FontAwesomeIcon icon={faChartBar} className="no-chart-icon" />
-                {!xAxis || !yAxis ? (
-                  <div>
-                    <p>Select X and Y axes to generate chart</p>
-                    <div style={{fontSize: '0.9rem', opacity: 0.7, marginTop: '10px'}}>
-                      {!xAxis && <div>❌ X-Axis not selected</div>}
-                      {!yAxis && <div>❌ Y-Axis not selected</div>}
-                      {xAxis && yAxis && <div>✅ Axes selected, checking data...</div>}
-                    </div>
-                  </div>
-                ) : !getFilteredData().length ? (
-                  <div>
-                    <p>No data available for visualization</p>
-                    <div style={{fontSize: '0.9rem', opacity: 0.7, marginTop: '10px'}}>
-                      Try adjusting your search filters or check if the file has data.
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <p>Unable to generate chart</p>
-                    <div style={{fontSize: '0.9rem', opacity: 0.7, marginTop: '10px'}}>
-                      Chart: {chartType} | Rows: {getFilteredData().length} | X: {xAxis} | Y: {yAxis}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Statistics */}
+        {/* Split Layout: Data Table and Statistics */}
+        <div className="analytics-bottom-section">
+          {/* Statistics Panel */}
           {stats && (
-            <div className="stats-panel">
-              <h4>
+            <div className="stats-section">
+              <h3>
                 <FontAwesomeIcon icon={faChartLine} style={{marginRight: '8px', color: 'var(--orange)'}} />
-                Summary Statistics
-              </h4>
-              <div className="stats-grid">
-                <div className="stat-item">
-                  <span className="stat-label">Count</span>
-                  <span className="stat-value">{stats.count}</span>
+                Statistical Summary
+              </h3>
+              <div className="stats-grid-enhanced">
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <FontAwesomeIcon icon={faTable} />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-value">{stats.count}</span>
+                    <span className="stat-label">Data Points</span>
+                  </div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Sum</span>
-                  <span className="stat-value">{stats.sum}</span>
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <FontAwesomeIcon icon={faChartArea} />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-value">{stats.sum}</span>
+                    <span className="stat-label">Sum</span>
+                  </div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Average</span>
-                  <span className="stat-value">{stats.average}</span>
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <FontAwesomeIcon icon={faChartLine} />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-value">{stats.average}</span>
+                    <span className="stat-label">Average</span>
+                  </div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Min</span>
-                  <span className="stat-value">{stats.min}</span>
+                <div className="stat-card">
+                  <div className="stat-icon">📉</div>
+                  <div className="stat-info">
+                    <span className="stat-value">{stats.min}</span>
+                    <span className="stat-label">Minimum</span>
+                  </div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Max</span>
-                  <span className="stat-value">{stats.max}</span>
+                <div className="stat-card">
+                  <div className="stat-icon">📈</div>
+                  <div className="stat-info">
+                    <span className="stat-value">{stats.max}</span>
+                    <span className="stat-label">Maximum</span>
+                  </div>
                 </div>
               </div>
             </div>
           )}
+
+          {/* Data Table Section */}
+          <div className="data-section-compact">
+            <div className="data-header">
+              <h3>
+                <FontAwesomeIcon icon={faTable} style={{marginRight: '8px'}} />
+                Data Preview
+              </h3>
+              <div className="data-info">
+                Showing {Math.min(data.length, 100)} of {data.length} rows
+                {dataFilter && <span className="filter-indicator">• Filtered</span>}
+              </div>
+            </div>
+            
+            <div className="data-table-container-compact">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    {columns.map(col => (
+                      <th key={col}>
+                        <div className="column-header">
+                          {col}
+                          {(col === xAxis || col === yAxis || col === zAxis) && (
+                            <span className="axis-indicator">
+                              {col === xAxis && <span className="x-axis">X</span>}
+                              {col === yAxis && <span className="y-axis">Y</span>}
+                              {col === zAxis && <span className="z-axis">Z</span>}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.slice(0, 50).map((row, index) => (
+                    <tr key={index}>
+                      {columns.map(col => (
+                        <td key={col}>{String(row[col] || '')}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {data.length > 50 && (
+                <div className="table-footer">
+                  Showing first 50 rows of {data.length} total rows
+                  {searchTerm && <span> • Search: "{searchTerm}"</span>}
+                  {dataFilter && <span> • Filter: "{dataFilter}"</span>}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
