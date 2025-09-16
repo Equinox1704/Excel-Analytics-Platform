@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const { generateOTP, sendOTPEmail, sendWelcomeEmail } = require('../utils/emailService');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -265,6 +266,46 @@ router.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password reset successfully' });
   } catch (err) {
     console.error('Reset password error:', err);
+    if (err.name === 'MongooseError' && err.message.includes('buffering timed out')) {
+      return res.status(503).json({ 
+        message: 'Database connection timeout. Please try again.',
+        error: 'Database temporarily unavailable'
+      });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get current user profile
+router.get('/me', auth, async (req, res) => {
+  try {
+    const userId = (req.auth && req.auth.userId) || (req.user && (req.user.userId || req.user.id));
+    console.log('📊 GET /me - Resolved User ID:', userId);
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized: missing user context' });
+    }
+
+    const user = await User.findById(userId)
+      .select('-password')
+      .maxTimeMS(5000)
+      .setOptions({ bufferCommands: false })
+      .lean();
+
+    if (!user) {
+      console.log('❌ User not found for ID:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('✅ User profile returned:', user.username, user.email);
+    res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      createdAt: user.createdAt
+    });
+  } catch (err) {
+    console.error('Get user profile error:', err);
     if (err.name === 'MongooseError' && err.message.includes('buffering timed out')) {
       return res.status(503).json({ 
         message: 'Database connection timeout. Please try again.',

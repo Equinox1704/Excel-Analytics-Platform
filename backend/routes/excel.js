@@ -47,6 +47,12 @@ const upload = multer({
   }
 });
 
+// Helper to resolve a unified userId from auth context (supports legacy patterns)
+function resolveUserId(req) {
+  return (req.auth && req.auth.userId) ||
+         (req.user && (req.user.userId || req.user.id || req.user._id));
+}
+
 // Upload Excel file
 router.post('/upload', authenticateToken, upload.single('excelFile'), async (req, res) => {
   try {
@@ -54,9 +60,13 @@ router.post('/upload', authenticateToken, upload.single('excelFile'), async (req
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Get authenticated user ID
-    const userId = req.user._id;
-    console.log(`📊 User ${req.user.email} uploading file: ${req.file.originalname}`);
+    const userId = resolveUserId(req);
+    if (!userId) {
+      console.warn('❌ /upload - Missing user context after auth middleware');
+      return res.status(401).json({ message: 'Unauthorized: missing user context', code: 'MISSING_USER_CONTEXT' });
+    }
+
+    console.log(`📊 User ${req.user && req.user.email} uploading file: ${req.file.originalname}`);
 
     // Create initial file record with timeout handling
     const excelFile = new ExcelFile({
@@ -185,9 +195,15 @@ async function processExcelFile(filePath, fileId) {
 // Get file status
 router.get('/status/:fileId', authenticateToken, async (req, res) => {
   try {
+    const userId = resolveUserId(req);
+    if (!userId) {
+      console.warn('❌ /status - Missing user context');
+      return res.status(401).json({ message: 'Unauthorized: missing user context', code: 'MISSING_USER_CONTEXT' });
+    }
+
     const file = await ExcelFile.findOne({
       _id: req.params.fileId,
-      userId: req.user._id // Ensure user can only access their own files
+      userId: userId // Ensure user can only access their own files
     })
     .select('status errorMessage metadata originalName uploadDate')
     .maxTimeMS(5000)
@@ -213,11 +229,16 @@ router.get('/status/:fileId', authenticateToken, async (req, res) => {
 // Get user's files
 router.get('/files', authenticateToken, async (req, res) => {
   try {
-    console.log('📁 GET /files - User ID:', req.user._id);
+    const userId = resolveUserId(req);
+    if (!userId) {
+      console.warn('❌ /files - Missing user context');
+      return res.status(401).json({ message: 'Unauthorized: missing user context', code: 'MISSING_USER_CONTEXT' });
+    }
+    console.log('📁 GET /files - User ID:', userId);
     console.log('📁 Database connection state:', mongoose.connection.readyState);
     
     const files = await ExcelFile.find({ 
-      userId: req.user._id 
+      userId: userId 
     })
     .select('originalName uploadDate status metadata charts size')
     .sort({ uploadDate: -1 })
@@ -268,7 +289,7 @@ router.get('/files', authenticateToken, async (req, res) => {
       try {
         // Fallback: Get files without sort (will be in insertion order)
         const fallbackFiles = await ExcelFile.find({ 
-          userId: req.user._id 
+          userId: userId 
         })
         .select('originalName uploadDate status metadata charts size')
         .limit(20)
@@ -309,9 +330,14 @@ router.get('/files', authenticateToken, async (req, res) => {
 // Get file data for visualization
 router.get('/data/:fileId', authenticateToken, async (req, res) => {
   try {
+    const userId = resolveUserId(req);
+    if (!userId) {
+      console.warn('❌ /data - Missing user context');
+      return res.status(401).json({ message: 'Unauthorized: missing user context', code: 'MISSING_USER_CONTEXT' });
+    }
     const file = await ExcelFile.findOne({
       _id: req.params.fileId,
-      userId: req.user._id // Ensure user can only access their own files
+      userId: userId // Ensure user can only access their own files
     })
     .maxTimeMS(10000)
     .setOptions({ bufferCommands: false })
@@ -348,9 +374,14 @@ router.get('/data/:fileId', authenticateToken, async (req, res) => {
 // Delete file
 router.delete('/file/:fileId', authenticateToken, async (req, res) => {
   try {
+    const userId = resolveUserId(req);
+    if (!userId) {
+      console.warn('❌ DELETE /file - Missing user context');
+      return res.status(401).json({ message: 'Unauthorized: missing user context', code: 'MISSING_USER_CONTEXT' });
+    }
     const file = await ExcelFile.findOneAndDelete({
       _id: req.params.fileId,
-      userId: req.user._id // Ensure user can only delete their own files
+      userId: userId // Ensure user can only delete their own files
     });
     
     if (!file) {

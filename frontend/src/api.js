@@ -123,7 +123,7 @@ export async function getFileStatus(fileId) {
   });
   
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 || res.status === 403) {
       localStorage.removeItem('token');
       throw new Error('Session expired. Please log in again.');
     }
@@ -157,7 +157,7 @@ export async function getUserFiles() {
     console.log('Response headers:', res.headers);
     
     if (!res.ok) {
-      if (res.status === 401) {
+      if (res.status === 401 || res.status === 403) {
         localStorage.removeItem('token');
         throw new Error('Session expired. Please log in again.');
       }
@@ -201,7 +201,7 @@ export async function getFileData(fileId) {
     });
     
     if (!res.ok) {
-      if (res.status === 401) {
+      if (res.status === 401 || res.status === 403) {
         localStorage.removeItem('token');
         throw new Error('Session expired. Please log in again.');
       }
@@ -235,7 +235,7 @@ export async function deleteFile(fileId) {
   });
   
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 || res.status === 403) {
       localStorage.removeItem('token');
       throw new Error('Session expired. Please log in again.');
     }
@@ -243,4 +243,34 @@ export async function deleteFile(fileId) {
     throw new Error(error.message || 'Failed to delete file');
   }
   return res.json();
+}
+
+export async function getCurrentUser() {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        // Invalid/expired token – clear and return null so UI can prompt login
+        localStorage.removeItem('token');
+        return null;
+      }
+      const ct = res.headers.get('content-type') || '';
+      let errorMsg = 'Failed to get user profile';
+      if (ct.includes('application/json')) {
+        const error = await res.json();
+        errorMsg = error.message || errorMsg;
+      }
+      throw new Error(errorMsg);
+    }
+    return res.json();
+  } catch (err) {
+    console.error('getCurrentUser error:', err);
+    return null; // Fail silently, caller will fallback
+  }
 }

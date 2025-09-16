@@ -27,7 +27,7 @@ import {
   faCloudUpload,
   faChartPie
 } from '@fortawesome/free-solid-svg-icons';
-import { uploadExcelFile, getFileStatus, getUserFiles, deleteFile } from '../api';
+import { uploadExcelFile, getFileStatus, getUserFiles, deleteFile, getCurrentUser } from '../api';
 import AnalyticsView from './AnalyticsView';
 import "./Dashboard.css";
 import logo from "../assets/logo.png";
@@ -47,11 +47,13 @@ export default function Dashboard({ user, onLogout }) {
   const [selectedAnalyticsFile, setSelectedAnalyticsFile] = useState(null);
   const [autoRedirectCount, setAutoRedirectCount] = useState(0);
   const [showAutoRedirect, setShowAutoRedirect] = useState(false);
+  const [currentUser, setCurrentUser] = useState(user || null);
 
   // Load user's files on component mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
+      loadCurrentUser(); // Load fresh user data from backend
       loadUserFiles();
     } else {
       console.log('No authentication token found');
@@ -60,7 +62,21 @@ export default function Dashboard({ user, onLogout }) {
         setTimeout(() => onLogout(), 1000);
       }
     }
-  }, [onLogout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load current user data
+  const loadCurrentUser = async () => {
+    try {
+      const userData = await getCurrentUser();
+      console.log('✅ Current user data loaded:', userData);
+      setCurrentUser(userData);
+    } catch (error) {
+      console.error('❌ Failed to load current user:', error);
+      // Keep the user data from props if API fails
+      setCurrentUser(user);
+    }
+  };
 
   const loadUserFiles = async () => {
     const token = localStorage.getItem('token');
@@ -342,18 +358,19 @@ export default function Dashboard({ user, onLogout }) {
               <div className="dashboard-logo-section">
                 <img src={logo} alt="InsightSheet" className="dashboard-logo" />
               </div>
+              <div className="dashboard-header-spacer" />
               <div className="dashboard-user-section">
                 <div className="user-profile" onClick={() => setShowUserMenu(!showUserMenu)}>
                   <div className="user-avatar">
-                    <span className="user-initials">{getUserInitials(user)}</span>
+                    <span className="user-initials">{getUserInitials(currentUser)}</span>
                   </div>
                   
                   {showUserMenu && (
                     <div className="user-dropdown">
                       <div className="dropdown-header">
                         <div className="dropdown-user-info">
-                          <span className="dropdown-user-name">{user?.username || 'User'}</span>
-                          <span className="dropdown-user-email">{user?.email || 'user@example.com'}</span>
+                          <span className="dropdown-user-name">{currentUser?.username || 'User'}</span>
+                          <span className="dropdown-user-email">{currentUser?.email || 'user@example.com'}</span>
                         </div>
                       </div>
                       <div className="dropdown-divider"></div>
@@ -380,7 +397,7 @@ export default function Dashboard({ user, onLogout }) {
               {/* Enhanced Welcome Section */}
               <div className="dashboard-welcome-section-new">
                 <div className="welcome-content">
-                  <h1>Welcome back, {user?.username || 'User'}! 👋</h1>
+                  <h1>Welcome back, {currentUser?.username || 'User'}! 👋</h1>
                   <p>Transform your Excel data into powerful insights and visualizations</p>
                   <div className="welcome-stats">
                     <div className="stat-card">

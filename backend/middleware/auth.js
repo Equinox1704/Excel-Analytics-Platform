@@ -42,7 +42,14 @@ const authenticateToken = async (req, res, next) => {
         }
 
         console.log('✅ User found:', user.email);
-        req.user = user;
+        // Standardize auth context
+        req.auth = { userId: user._id.toString() };
+        // Keep a minimal safe user object
+        req.user = {
+          id: user._id.toString(),
+          username: user.username,
+          email: user.email
+        };
         next();
       } catch (dbError) {
         console.error('❌ Database error in auth middleware:', dbError);
