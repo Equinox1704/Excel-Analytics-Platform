@@ -356,7 +356,7 @@ export default function Dashboard({ user, onLogout }) {
           <header className="dashboard-header">
             <div className="dashboard-header-content">
               <div className="dashboard-logo-section">
-                <img src={logo} alt="InsightSheet" className="dashboard-logo" />
+                <img src={logo} alt="InsightSheet" className="header-logo" />
               </div>
               <div className="dashboard-header-spacer" />
               <div className="dashboard-user-section">
@@ -633,7 +633,7 @@ export default function Dashboard({ user, onLogout }) {
                   {/* Usage Tips */}
                   <div className="tips-card">
                     <h3>
-                      <FontAwesomeIcon icon={faLightbulb} style={{marginRight: '8px', color: 'var(--orange)'}} />
+                      <FontAwesomeIcon icon={faLightbulb} style={{marginRight: '8px', color: "#f59e0b"}} />
                       Pro Tips
                     </h3>
                     <div className="tips-list">
