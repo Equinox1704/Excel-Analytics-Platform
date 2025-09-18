@@ -1,4 +1,5 @@
 import React from "react";
+import "./LandingPage.css";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUpload, 
@@ -8,7 +9,6 @@ import {
   faRocket,
   faLightbulb
 } from '@fortawesome/free-solid-svg-icons';
-import "./LandingPage.css";
 // import logo from "../assets/logo.jpg"; 
 
 export default function LandingPage({ onGetStarted, onLearnMore }) {
@@ -46,17 +46,17 @@ export default function LandingPage({ onGetStarted, onLearnMore }) {
           </button>
         </div>
         <div className="lp-hero-stats">
-          <div className="stat-item">
-            <span className="stat-number">10K+</span>
-            <span className="stat-label">Files Analyzed</span>
+          <div className="lp-stat-item">
+            <span className="lp-stat-number">10K+</span>
+            <span className="lp-stat-label">Files Analyzed</span>
           </div>
-          <div className="stat-item">
-            <span className="stat-number">50+</span>
-            <span className="stat-label">Chart Types</span>
+          <div className="lp-stat-item">
+            <span className="lp-stat-number">50+</span>
+            <span className="lp-stat-label">Chart Types</span>
           </div>
-          <div className="stat-item">
-            <span className="stat-number">99.9%</span>
-            <span className="stat-label">Uptime</span>
+          <div className="lp-stat-item">
+            <span className="lp-stat-number">99.9%</span>
+            <span className="lp-stat-label">Uptime</span>
           </div>
         </div>
       </section>

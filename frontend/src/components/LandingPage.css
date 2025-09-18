@@ -301,13 +301,31 @@ body {
   justify-content: center;
   gap: 3rem;
   animation: fadeInUp 0.8s ease-out 0.8s both;
+  background: var(--gray);
+  border-radius: 16px;
+  padding: 2rem 0;
+  margin-top: 2rem;
 }
 
-.stat-item {
+.lp-stat-item {
   text-align: center;
+  background: var(--white);
+  box-shadow: 0 4px 10px rgba(20, 33, 61, 0.05);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  transition: all 0.3s ease;
+  cursor: default;
 }
 
-.stat-number {
+/* Hover effect */
+.lp-stat-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(252, 163, 17, 0.3);
+  cursor: pointer;
+}
+
+
+.lp-stat-number {
   display: block;
   font-size: 2rem;
   font-weight: 800;
@@ -315,9 +333,9 @@ body {
   margin-bottom: 0.25rem;
 }
 
-.stat-label {
+.lp-stat-label {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--navy);
   font-weight: 500;
 }
 
