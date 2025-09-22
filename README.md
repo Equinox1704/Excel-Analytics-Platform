@@ -182,4 +182,4 @@ npm start
 
 ---
 
-**Built with ❤️ using the MERN stack**
+**Built with ❤️ using the MERN stack(team effort)**
